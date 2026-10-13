@@ -1,0 +1,131 @@
+{
+  "requestId": "6f1c2b7e-41d9-4a8e-9b0a-3c55e2d1a901",
+  "responseTimestamp": "2026-10-13T08:15:22-04:00",
+  "policy": {
+    "policyNumber": "UL1000234",
+    "productCode": "FUL-2015",
+    "productName": "Flex Universal Life 2015",
+    "planType": "UL",
+    "status": "Active",
+    "issueDate": "2015-03-01",
+    "issueState": "PR",
+    "maturityDate": "2096-03-01",
+    "valuationDate": "2026-09-30",
+    "paidToDate": "2026-10-01",
+    "billingMode": "Monthly",
+    "modalPremium": 325.00,
+    "plannedPremium": 3900.00,
+    "deathBenefitOption": "A",
+    "taxComplianceTest": "GPT",
+    "administrationSystem": "VNDR-LIFE 9.4",
+
+    "owner": {
+      "partyId": "P-55120",
+      "name": "Maria L. Rivera",
+      "ownerType": "Individual",
+      "state": "PR"
+    },
+
+    "insureds": [
+      {
+        "partyId": "P-55120",
+        "role": "Primary",
+        "firstName": "Maria",
+        "lastName": "Rivera",
+        "gender": "F",
+        "dateOfBirth": "1980-06-14",
+        "issueAge": 34,
+        "attainedAge": 46,
+        "riskClass": "Preferred Non-Tobacco",
+        "tobaccoUse": false,
+        "tableRating": null,
+        "flatExtraPerThousand": 0.00
+      }
+    ],
+
+    "coverages": [
+      {
+        "coverageId": "C1",
+        "phase": 1,
+        "planCode": "FUL-BASE",
+        "description": "Base Universal Life",
+        "insuredPartyId": "P-55120",
+        "faceAmount": 500000.00,
+        "issueDate": "2015-03-01",
+        "status": "Active",
+        "riskClass": "Preferred Non-Tobacco"
+      },
+      {
+        "coverageId": "C2",
+        "phase": 2,
+        "planCode": "FUL-INC",
+        "description": "Face Increase",
+        "insuredPartyId": "P-55120",
+        "faceAmount": 100000.00,
+        "issueDate": "2019-03-01",
+        "status": "Active",
+        "riskClass": "Standard Non-Tobacco"
+      }
+    ],
+
+    "riders": [
+      {
+        "riderCode": "WMD",
+        "description": "Waiver of Monthly Deduction",
+        "amount": null,
+        "issueDate": "2015-03-01",
+        "expiryDate": "2045-06-14",
+        "status": "Active",
+        "monthlyCharge": 18.42
+      },
+      {
+        "riderCode": "CTR",
+        "description": "Children's Term Rider",
+        "amount": 10000.00,
+        "issueDate": "2016-08-01",
+        "expiryDate": "2038-08-01",
+        "status": "Active",
+        "monthlyCharge": 5.00
+      }
+    ],
+
+    "values": {
+      "accountValue": 48215.37,
+      "cashSurrenderValue": 41980.12,
+      "surrenderCharge": 1235.25,
+      "netDeathBenefit": 595000.00,
+      "loanBalance": 5000.00,
+      "accruedLoanInterest": 0.00,
+      "currentInterestRate": 4.25,
+      "guaranteedInterestRate": 2.00,
+      "cumulativePremiumsPaid": 45825.00,
+      "costBasis": 45825.00,
+      "targetPremium": 4120.00,
+      "minimumPremium": 2640.00,
+      "guidelineSinglePremium": 98765.43,
+      "guidelineLevelPremium": 7412.10,
+      "sevenPayPremium": 14210.55,
+      "isMec": false
+    },
+
+    "loans": [
+      {
+        "loanType": "Standard",
+        "principal": 5000.00,
+        "interestRate": 6.00,
+        "accruedInterest": 0.00,
+        "loanDate": "2024-11-15"
+      }
+    ],
+
+    "funds": [
+      {
+        "fundCode": "FIX",
+        "fundName": "Fixed Account",
+        "allocationPercent": 100.00,
+        "balance": 48215.37,
+        "creditedRate": 4.25
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · Reprojection</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="topbar">
+        <div class="container topbar-inner">
+            <a class="brand" asp-controller="Policy" asp-action="Index">
+                <span class="brand-mark" aria-hidden="true"></span>
+                Reprojection
+            </a>
+            <nav class="nav">
+                <a asp-controller="Policy" asp-action="Index">Policy data</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" role="main">
+        @RenderBody()
+    </main>
+
+    <footer class="container footer">
+        In-house reprojection · baseline data view
+    </footer>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

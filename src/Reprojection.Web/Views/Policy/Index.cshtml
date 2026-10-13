@@ -1,0 +1,372 @@
+@model PolicyPageViewModel
+@{
+    ViewData["Title"] = Model.PolicyNumber ?? "Policy data";
+    var p = Model.Policy;
+    var r = Model.Result;
+
+    string Money(decimal? v) => v?.ToString("C2") ?? "—";
+    string Pct(decimal? v) => v is null ? "—" : $"{v:0.00}%";
+    string Date(DateOnly? d) => d?.ToString("MMM d, yyyy") ?? "—";
+    string Text(string? s) => string.IsNullOrWhiteSpace(s) ? "—" : s;
+    string YesNo(bool? b) => b is null ? "—" : b.Value ? "Yes" : "No";
+    string StatusClass(string? s) => (s ?? "").ToLowerInvariant() switch
+    {
+        "active" or "inforce" or "in force" => "badge-ok",
+        "lapsed" or "terminated" or "surrendered" => "badge-bad",
+        _ => "badge-neutral"
+    };
+}
+
+<section class="page-head">
+    <div>
+        <h1>Policy data</h1>
+        <p class="muted">Pulls the in-force record from the vendor API and shows how it mapped to our models.</p>
+    </div>
+    <span class="mode @(Model.UsingMockData ? "mode-mock" : "mode-live")">
+        @(Model.UsingMockData ? "Mock data" : "Live API")
+    </span>
+</section>
+
+<form class="search" method="get" asp-controller="Policy" asp-action="Index" role="search">
+    <label for="policyNumber" class="sr-only">Policy number</label>
+    <input id="policyNumber" name="policyNumber" value="@Model.PolicyNumber"
+           placeholder="Policy number, e.g. UL1000234" autocomplete="off" required maxlength="30" />
+    <button type="submit">Retrieve</button>
+</form>
+
+@if (Model.ValidationMessage is not null)
+{
+    <div class="alert alert-warn">@Model.ValidationMessage</div>
+}
+
+@if (!Model.HasSearched && Model.ValidationMessage is null)
+{
+    <div class="empty">
+        <p>Enter a policy number to call the vendor's GET endpoint.</p>
+        @if (Model.UsingMockData)
+        {
+            <p class="muted">Mock mode is on: any number returns <code>MockData/policy-sample.json</code>
+               (or <code>policy-{number}.json</code> if that file exists).</p>
+        }
+    </div>
+}
+
+@if (r is not null && !r.Success)
+{
+    <section class="card card-error">
+        <h2>Request failed</h2>
+        <p>@r.Error</p>
+        <dl class="meta">
+            <div><dt>Endpoint</dt><dd><code>@r.RequestUrl</code></dd></div>
+            <div><dt>HTTP</dt><dd>@(r.StatusCode?.ToString() ?? "no response")</dd></div>
+            <div><dt>Time</dt><dd>@r.ElapsedMs ms</dd></div>
+        </dl>
+        @if (r.RawJson is not null)
+        {
+            <details open>
+                <summary>Response body</summary>
+                <pre class="json">@r.RawJson</pre>
+            </details>
+        }
+    </section>
+}
+
+@if (r is not null && r.Success && p is not null)
+{
+    var activeFace = p.Coverages.Where(c => !string.Equals(c.Status, "Terminated", StringComparison.OrdinalIgnoreCase))
+                                .Sum(c => c.FaceAmount ?? 0);
+
+    <dl class="meta-strip">
+        <div><dt>Source</dt><dd>@r.Source</dd></div>
+        <div><dt>Endpoint</dt><dd><code>@r.RequestUrl</code></dd></div>
+        <div><dt>HTTP</dt><dd>@r.StatusCode</dd></div>
+        <div><dt>Response time</dt><dd>@r.ElapsedMs ms</dd></div>
+        <div><dt>Retrieved</dt><dd>@r.RetrievedAt.ToString("MMM d, yyyy h:mm tt")</dd></div>
+        <div><dt>Request ID</dt><dd>@Text(r.Data?.RequestId)</dd></div>
+    </dl>
+
+    <!-- Summary -->
+    <section class="card summary">
+        <div class="summary-head">
+            <div>
+                <div class="eyebrow">@Text(p.PlanType) · @Text(p.ProductCode)</div>
+                <h2 class="policy-no">@Text(p.PolicyNumber)</h2>
+                <div class="muted">@Text(p.ProductName)</div>
+            </div>
+            <div class="summary-side">
+                <span class="badge @StatusClass(p.Status)">@Text(p.Status)</span>
+                <div class="muted small">Valued as of @Date(p.ValuationDate)</div>
+            </div>
+        </div>
+        <div class="kpis">
+            <div class="kpi"><span>Total face amount</span><strong>@Money(activeFace)</strong></div>
+            <div class="kpi"><span>Account value</span><strong>@Money(p.Values?.AccountValue)</strong></div>
+            <div class="kpi"><span>Cash surrender value</span><strong>@Money(p.Values?.CashSurrenderValue)</strong></div>
+            <div class="kpi"><span>Net death benefit</span><strong>@Money(p.Values?.NetDeathBenefit)</strong></div>
+        </div>
+    </section>
+
+    <div class="grid-2">
+        <section class="card">
+            <h3>Policy</h3>
+            <dl class="fields">
+                <div><dt>Issue date</dt><dd>@Date(p.IssueDate)</dd></div>
+                <div><dt>Issue state</dt><dd>@Text(p.IssueState)</dd></div>
+                <div><dt>Maturity date</dt><dd>@Date(p.MaturityDate)</dd></div>
+                <div><dt>Paid-to date</dt><dd>@Date(p.PaidToDate)</dd></div>
+                <div><dt>Billing mode</dt><dd>@Text(p.BillingMode)</dd></div>
+                <div><dt>Modal premium</dt><dd>@Money(p.ModalPremium)</dd></div>
+                <div><dt>Planned annual premium</dt><dd>@Money(p.PlannedPremium)</dd></div>
+                <div><dt>Death benefit option</dt><dd>@Text(p.DeathBenefitOption)</dd></div>
+                <div><dt>Tax compliance test</dt><dd>@Text(p.TaxComplianceTest)</dd></div>
+            </dl>
+        </section>
+
+        <section class="card">
+            <h3>Owner</h3>
+            @if (p.Owner is null)
+            {
+                <p class="muted">No owner returned.</p>
+            }
+            else
+            {
+                <dl class="fields">
+                    <div><dt>Name</dt><dd>@Text(p.Owner.Name)</dd></div>
+                    <div><dt>Type</dt><dd>@Text(p.Owner.OwnerType)</dd></div>
+                    <div><dt>State</dt><dd>@Text(p.Owner.State)</dd></div>
+                    <div><dt>Party ID</dt><dd>@Text(p.Owner.PartyId)</dd></div>
+                </dl>
+            }
+
+            <h3 class="spaced">Insured@(p.Insureds.Count == 1 ? "" : "s")</h3>
+            @if (p.Insureds.Count == 0)
+            {
+                <p class="muted">No insureds returned.</p>
+            }
+            @foreach (var i in p.Insureds)
+            {
+                <div class="person">
+                    <div class="person-head">
+                        <strong>@Text(i.FullName)</strong>
+                        <span class="chip">@Text(i.Role)</span>
+                    </div>
+                    <dl class="fields compact">
+                        <div><dt>Gender / DOB</dt><dd>@Text(i.Gender) · @Date(i.DateOfBirth)</dd></div>
+                        <div><dt>Issue / attained age</dt><dd>@(i.IssueAge?.ToString() ?? "—") / @(i.AttainedAge?.ToString() ?? "—")</dd></div>
+                        <div><dt>Risk class</dt><dd>@Text(i.RiskClass)</dd></div>
+                        <div><dt>Tobacco</dt><dd>@YesNo(i.TobaccoUse)</dd></div>
+                        <div><dt>Table rating</dt><dd>@Text(i.TableRating)</dd></div>
+                        <div><dt>Flat extra / 1,000</dt><dd>@Money(i.FlatExtraPerThousand)</dd></div>
+                    </dl>
+                </div>
+            }
+        </section>
+    </div>
+
+    <section class="card">
+        <h3>Coverages <span class="count">@p.Coverages.Count</span></h3>
+        @if (p.Coverages.Count == 0)
+        {
+            <p class="muted">No coverages returned.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Phase</th><th>Plan</th><th>Description</th><th>Issue date</th><th>Risk class</th><th>Status</th><th class="num">Face amount</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in p.Coverages.OrderBy(c => c.Phase))
+                        {
+                            <tr>
+                                <td>@(c.Phase?.ToString() ?? "—")</td>
+                                <td><code>@Text(c.PlanCode)</code></td>
+                                <td>@Text(c.Description)</td>
+                                <td>@Date(c.IssueDate)</td>
+                                <td>@Text(c.RiskClass)</td>
+                                <td><span class="badge @StatusClass(c.Status)">@Text(c.Status)</span></td>
+                                <td class="num">@Money(c.FaceAmount)</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr><td colspan="6">Total in force</td><td class="num">@Money(activeFace)</td></tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    </section>
+
+    <section class="card">
+        <h3>Riders <span class="count">@p.Riders.Count</span></h3>
+        @if (p.Riders.Count == 0)
+        {
+            <p class="muted">No riders returned.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Code</th><th>Description</th><th>Issue date</th><th>Expiry date</th><th>Status</th><th class="num">Amount</th><th class="num">Monthly charge</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rd in p.Riders)
+                        {
+                            <tr>
+                                <td><code>@Text(rd.RiderCode)</code></td>
+                                <td>@Text(rd.Description)</td>
+                                <td>@Date(rd.IssueDate)</td>
+                                <td>@Date(rd.ExpiryDate)</td>
+                                <td><span class="badge @StatusClass(rd.Status)">@Text(rd.Status)</span></td>
+                                <td class="num">@Money(rd.Amount)</td>
+                                <td class="num">@Money(rd.MonthlyCharge)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <div class="grid-2">
+        <section class="card">
+            <h3>Values</h3>
+            @if (p.Values is null)
+            {
+                <p class="muted">No values returned.</p>
+            }
+            else
+            {
+                var v = p.Values;
+                <dl class="fields">
+                    <div><dt>Account value</dt><dd>@Money(v.AccountValue)</dd></div>
+                    <div><dt>Surrender charge</dt><dd>@Money(v.SurrenderCharge)</dd></div>
+                    <div><dt>Cash surrender value</dt><dd>@Money(v.CashSurrenderValue)</dd></div>
+                    <div><dt>Loan balance</dt><dd>@Money(v.LoanBalance)</dd></div>
+                    <div><dt>Accrued loan interest</dt><dd>@Money(v.AccruedLoanInterest)</dd></div>
+                    <div><dt>Net death benefit</dt><dd>@Money(v.NetDeathBenefit)</dd></div>
+                    <div><dt>Current interest rate</dt><dd>@Pct(v.CurrentInterestRate)</dd></div>
+                    <div><dt>Guaranteed interest rate</dt><dd>@Pct(v.GuaranteedInterestRate)</dd></div>
+                </dl>
+            }
+        </section>
+
+        <section class="card">
+            <h3>Premiums &amp; tax compliance</h3>
+            @if (p.Values is null)
+            {
+                <p class="muted">No values returned.</p>
+            }
+            else
+            {
+                var v = p.Values;
+                <dl class="fields">
+                    <div><dt>Cumulative premiums paid</dt><dd>@Money(v.CumulativePremiumsPaid)</dd></div>
+                    <div><dt>Cost basis</dt><dd>@Money(v.CostBasis)</dd></div>
+                    <div><dt>Target premium</dt><dd>@Money(v.TargetPremium)</dd></div>
+                    <div><dt>Minimum premium</dt><dd>@Money(v.MinimumPremium)</dd></div>
+                    <div><dt>Guideline single premium</dt><dd>@Money(v.GuidelineSinglePremium)</dd></div>
+                    <div><dt>Guideline level premium</dt><dd>@Money(v.GuidelineLevelPremium)</dd></div>
+                    <div><dt>7-pay premium</dt><dd>@Money(v.SevenPayPremium)</dd></div>
+                    <div><dt>MEC</dt><dd>@YesNo(v.IsMec)</dd></div>
+                </dl>
+            }
+        </section>
+    </div>
+
+    <div class="grid-2">
+        <section class="card">
+            <h3>Loans <span class="count">@p.Loans.Count</span></h3>
+            @if (p.Loans.Count == 0)
+            {
+                <p class="muted">No loans.</p>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Type</th><th>Loan date</th><th class="num">Rate</th><th class="num">Principal</th><th class="num">Accrued int.</th></tr></thead>
+                        <tbody>
+                            @foreach (var l in p.Loans)
+                            {
+                                <tr>
+                                    <td>@Text(l.LoanType)</td>
+                                    <td>@Date(l.LoanDate)</td>
+                                    <td class="num">@Pct(l.InterestRate)</td>
+                                    <td class="num">@Money(l.Principal)</td>
+                                    <td class="num">@Money(l.AccruedInterest)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <section class="card">
+            <h3>Fund allocation <span class="count">@p.Funds.Count</span></h3>
+            @if (p.Funds.Count == 0)
+            {
+                <p class="muted">No funds.</p>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Fund</th><th class="num">Alloc.</th><th class="num">Rate</th><th class="num">Balance</th></tr></thead>
+                        <tbody>
+                            @foreach (var f in p.Funds)
+                            {
+                                <tr>
+                                    <td>@Text(f.FundName) <span class="muted small">@f.FundCode</span></td>
+                                    <td class="num">@Pct(f.AllocationPercent)</td>
+                                    <td class="num">@Pct(f.CreditedRate)</td>
+                                    <td class="num">@Money(f.Balance)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+
+    <!-- Mapping check: is every field landing in a model? -->
+    @if (r.Mapping is { } m)
+    {
+        <section class="card mapping @(m.IsClean ? "mapping-ok" : "mapping-warn")">
+            <h3>Mapping check</h3>
+            @if (m.IsClean)
+            {
+                <p>All @m.FieldsReceived fields in the response mapped to a model property, and every model property was present.</p>
+            }
+            else
+            {
+                <p class="muted">@m.FieldsReceived fields received. Differences between the vendor JSON and our models:</p>
+                <div class="grid-2 tight">
+                    <div>
+                        <h4>In JSON, not in models <span class="count">@m.UnmappedFields.Count</span></h4>
+                        <p class="muted small">Data we're receiving but dropping. Add properties for these.</p>
+                        @if (m.UnmappedFields.Count == 0) { <p class="muted small">None.</p> }
+                        <ul class="paths">@foreach (var f in m.UnmappedFields) { <li><code>@f</code></li> }</ul>
+                    </div>
+                    <div>
+                        <h4>In models, not in JSON <span class="count">@m.MissingFields.Count</span></h4>
+                        <p class="muted small">Check the name, or confirm the field is optional.</p>
+                        @if (m.MissingFields.Count == 0) { <p class="muted small">None.</p> }
+                        <ul class="paths">@foreach (var f in m.MissingFields) { <li><code>@f</code></li> }</ul>
+                    </div>
+                </div>
+            }
+        </section>
+    }
+
+    <section class="card">
+        <details>
+            <summary>Raw JSON response</summary>
+            <pre class="json">@r.RawJson</pre>
+        </details>
+    </section>
+}

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <!-- Visual Studio 2026 ships with .NET 10. Change to net8.0/net9.0 if your org standardizes on an older LTS. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Reprojection.Web</RootNamespace>
+    <UserSecretsId>reprojection-web-7d3c1f2a</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Mock vendor payloads used when VendorApi:UseMockData = true -->
+    <None Update="MockData\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
